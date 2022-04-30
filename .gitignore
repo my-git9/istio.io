@@ -38,3 +38,5 @@ go/**
 
 # archived site version
 archived_version
+scripts
+.gitignore
