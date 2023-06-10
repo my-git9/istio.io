@@ -512,7 +512,7 @@ EOF
 You can extend your gateway's definition to support [mutual TLS](https://en.wikipedia.org/wiki/Mutual_authentication).
 
 1. Change the credentials of the ingress gateway by deleting its secret and creating a new one.
-    The server uses the CA certificate to verify its clients, and we must use the name `cacert` to hold the CA certificate.
+   The server uses the CA certificate to verify its clients, and we must use the key `ca.crt` to hold the CA certificate.
 
     {{< text bash >}}
     $ kubectl -n istio-system delete secret httpbin-credential
@@ -521,6 +521,12 @@ You can extend your gateway's definition to support [mutual TLS](https://en.wiki
       --from-file=tls.crt=example_certs1/httpbin.example.com.crt \
       --from-file=ca.crt=example_certs1/example.com.crt
     {{< /text >}}
+
+    {{< tip >}}
+    {{< boilerplate crl-tip >}}
+
+    The credential may also include an [OCSP Staple](https://datatracker.ietf.org/doc/html/rfc6961) using the key `tls.ocsp-staple` which can be specified by an additional argument: `--from-file=tls.ocsp-staple=/some/path/to/your-ocsp-staple.pem`.
+    {{< /tip >}}
 
 1. Configure the ingress gateway:
 

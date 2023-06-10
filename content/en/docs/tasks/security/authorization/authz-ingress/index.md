@@ -91,13 +91,24 @@ $ export INGRESS_PORT=$(kubectl get gtw httpbin-gateway -n foo -o jsonpath='{.sp
 
 ## Getting traffic into Kubernetes and Istio
 
-All methods of getting traffic into Kubernetes involve opening a port on all worker nodes.  The main features that accomplish this are the `NodePort` service and the `LoadBalancer` service.  Even the Kubernetes `Ingress` resource must be backed by an Ingress controller that will create either a `NodePort` or a `LoadBalancer` service.
+All methods of getting traffic into Kubernetes involve opening a port on all worker nodes.
+The main features that accomplish this are the `NodePort` service and the `LoadBalancer` service.
+Even the Kubernetes `Ingress` resource must be backed by an Ingress controller that will create
+either a `NodePort` or a `LoadBalancer` service.
 
-* A `NodePort` just opens up a port in the range 30000-32767 on each worker node and uses a label selector to identify which Pods to send the traffic to.  You have to manually create some kind of load balancer in front of your worker nodes or use Round-Robin DNS.
+* A `NodePort` just opens up a port in the range 30000-32767 on each worker node and uses a label
+  selector to identify which Pods to send the traffic to. You have to manually create some kind
+  of load balancer in front of your worker nodes or use Round-Robin DNS.
 
-* A `LoadBalancer` is just like a `NodePort`, except it also creates an environment specific external load balancer to handle distributing traffic to the worker nodes.  For example, in AWS EKS, the `LoadBalancer` service will create a Classic ELB with your worker nodes as targets. If your Kubernetes environment does not have a `LoadBalancer` implementation, then it will just behave like a `NodePort`.  An Istio ingress gateway creates a `LoadBalancer` service.
+* A `LoadBalancer` is just like a `NodePort`, except it also creates an environment specific external
+  load balancer to handle distributing traffic to the worker nodes.  For example, in AWS EKS, the `LoadBalancer`
+  service will create a Classic ELB with your worker nodes as targets. If your Kubernetes environment
+  does not have a `LoadBalancer` implementation, then it will just behave like a `NodePort`.  An Istio
+  ingress gateway creates a `LoadBalancer` service.
 
-What if the Pod that is handling traffic from the `NodePort` or `LoadBalancer` isn't running on the worker node that received the traffic?  Kubernetes has its own internal proxy called kube-proxy that receives the packets and forwards them to the correct node.
+What if the Pod that is handling traffic from the `NodePort` or `LoadBalancer` isn't running on
+the worker node that received the traffic?  Kubernetes has its own internal proxy called kube-proxy
+that receives the packets and forwards them to the correct node.
 
 ## Source IP address of the original client
 
@@ -175,20 +186,20 @@ If you are using a TCP/UDP Proxy external load balancer (AWS Classic ELB), it ca
 {{< tab name="Istio classic" category-value="istio-classic" >}}
 
 {{< text yaml >}}
-apiVersion: networking.istio.io/v1alp ha3
+apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
   name: proxy-protocol
   namespace: istio-system
 spec:
   configPatches:
-  - applyTo: LISTENER
+  - applyTo: LISTENER_FILTER
     patch:
-      operation: MERGE
+      operation: INSERT_FIRST
       value:
-        listener_filters:
-        - name: envoy.listener.proxy_protocol
-        - name: envoy.listener.tls_inspector
+        name: proxy_protocol
+        typed_config:
+          "@type": "type.googleapis.com/envoy.extensions.filters.listener.proxy_protocol.v3.ProxyProtocol"
   workloadSelector:
     labels:
       istio: ingressgateway
@@ -199,20 +210,20 @@ spec:
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
 {{< text yaml >}}
-apiVersion: networking.istio.io/v1alp ha3
+apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
   name: proxy-protocol
   namespace: foo
 spec:
   configPatches:
-  - applyTo: LISTENER
+  - applyTo: LISTENER_FILTER
     patch:
-      operation: MERGE
+      operation: INSERT_FIRST
       value:
-        listener_filters:
-        - name: envoy.listener.proxy_protocol
-        - name: envoy.listener.tls_inspector
+        name: proxy_protocol
+        typed_config:
+          "@type": "type.googleapis.com/envoy.extensions.filters.listener.proxy_protocol.v3.ProxyProtocol"
   workloadSelector:
     labels:
       istio.io/gateway-name: httpbin-gateway
