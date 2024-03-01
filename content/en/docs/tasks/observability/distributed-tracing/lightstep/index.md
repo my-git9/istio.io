@@ -103,7 +103,7 @@ Follow these steps if you're using the Public or Developer Mode Satellites, or i
           sampling: 100
           tlsSettings
             mode: "SIMPLE"
-            # Specifying ca certificate here will moute `lightstep.cacert` secret volume
+            # Specifying ca certificate here will mount `lightstep.cacert` secret volume
             # at all sidecars by default.
             caCertificates="/etc/lightstep/cacert.pem"
     components:
