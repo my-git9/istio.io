@@ -19,6 +19,7 @@
 # WARNING: THIS IS AN AUTO-GENERATED FILE, DO NOT EDIT. PLEASE MODIFY THE ORIGINAL MARKDOWN FILE:
 #          docs/tasks/traffic-management/egress/egress-control/index.md
 ####################################################################################################
+source "content/en/boilerplates/snips/gateway-api-gamma-support.sh"
 
 snip_before_you_begin_1() {
 kubectl apply -f samples/sleep/sleep.yaml
@@ -33,12 +34,8 @@ export SOURCE_POD=$(kubectl get pod -l app=sleep -o jsonpath='{.items..metadata.
 }
 
 snip_envoy_passthrough_to_external_services_1() {
-kubectl get istiooperator installed-state -n istio-system -o jsonpath='{.spec.meshConfig.outboundTrafficPolicy.mode}'
+kubectl get configmap istio -n istio-system -o yaml
 }
-
-! read -r -d '' snip_envoy_passthrough_to_external_services_1_out <<\ENDSNIP
-ALLOW_ANY
-ENDSNIP
 
 snip_envoy_passthrough_to_external_services_3() {
 kubectl exec "$SOURCE_POD" -c sleep -- curl -sSI https://www.google.com | grep  "HTTP/"; kubectl exec "$SOURCE_POD" -c sleep -- curl -sI https://edition.cnn.com | grep "HTTP/"
@@ -160,21 +157,45 @@ metadata:
   name: httpbin-ext
 spec:
   hosts:
-    - httpbin.org
+  - httpbin.org
   http:
   - timeout: 3s
     route:
-      - destination:
-          host: httpbin.org
-        weight: 100
+    - destination:
+        host: httpbin.org
+      weight: 100
 EOF
 }
 
 snip_manage_traffic_to_external_services_3() {
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: httpbin-ext
+spec:
+  parentRefs:
+  - kind: ServiceEntry
+    group: networking.istio.io
+    name: httpbin-ext
+  hostnames:
+  - httpbin.org
+  rules:
+  - timeouts:
+      request: 3s
+    backendRefs:
+    - kind: Hostname
+      group: networking.istio.io
+      name: httpbin.org
+      port: 80
+EOF
+}
+
+snip_manage_traffic_to_external_services_4() {
 kubectl exec "$SOURCE_POD" -c sleep -- time curl -o /dev/null -sS -w "%{http_code}\n" http://httpbin.org/delay/5
 }
 
-! read -r -d '' snip_manage_traffic_to_external_services_3_out <<\ENDSNIP
+! read -r -d '' snip_manage_traffic_to_external_services_4_out <<\ENDSNIP
 504
 real    0m3.149s
 user    0m0.004s
@@ -184,6 +205,11 @@ ENDSNIP
 snip_cleanup_the_controlled_access_to_external_services_1() {
 kubectl delete serviceentry httpbin-ext google
 kubectl delete virtualservice httpbin-ext --ignore-not-found=true
+}
+
+snip_cleanup_the_controlled_access_to_external_services_2() {
+kubectl delete serviceentry httpbin-ext
+kubectl delete httproute httpbin-ext --ignore-not-found=true
 }
 
 snip_ibm_cloud_private_1() {
@@ -209,6 +235,41 @@ gcloud container clusters describe XXXXXXX --zone=XXXXXX | grep -e clusterIpv4Ci
 ! read -r -d '' snip_google_kubernetes_engine_gke_1_out <<\ENDSNIP
 clusterIpv4Cidr: 10.4.0.0/14
 servicesIpv4Cidr: 10.7.240.0/20
+ENDSNIP
+
+snip_kubenet_1() {
+az aks show --resource-group "${RESOURCE_GROUP}" --name "${CLUSTER}" | grep Cidr
+}
+
+! read -r -d '' snip_kubenet_1_out <<\ENDSNIP
+    "podCidr": "10.244.0.0/16",
+    "podCidrs": [
+    "serviceCidr": "10.0.0.0/16",
+    "serviceCidrs": [
+ENDSNIP
+
+snip_azure_cni_1() {
+az aks show --resource-group "${RESOURCE_GROUP}" --name "${CLUSTER}" | grep serviceCidr
+}
+
+! read -r -d '' snip_azure_cni_1_out <<\ENDSNIP
+    "serviceCidr": "10.0.0.0/16",
+    "serviceCidrs": [
+ENDSNIP
+
+snip_azure_cni_2() {
+az aks show --resource-group "${RESOURCE_GROUP}" --name "${CLUSTER}" | grep nodeResourceGroup
+}
+
+! read -r -d '' snip_azure_cni_2_out <<\ENDSNIP
+  "nodeResourceGroup": "MC_user-rg_user-cluster_region",
+  "nodeResourceGroupProfile": null,
+az network vnet list -g MC_user-rg_user-cluster_region | grep name
+    "name": "aks-vnet-74242220",
+        "name": "aks-subnet",
+az network vnet show -g MC_user-rg_user-cluster_region -n aks-vnet-74242220 | grep addressPrefix
+    "addressPrefixes": [
+      "addressPrefix": "10.224.0.0/16",
 ENDSNIP
 
 snip_minikube_docker_for_desktop_bare_metal_1() {

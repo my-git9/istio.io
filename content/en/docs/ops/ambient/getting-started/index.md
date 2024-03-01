@@ -6,14 +6,7 @@ owner: istio/wg-networking-maintainers
 test: yes
 ---
 
-{{< warning >}}
-Ambient is currently in [alpha status](/docs/releases/feature-stages/#feature-phase-definitions).
-
-Please **do not run ambient in production** and be sure to thoroughly review the [feature phase definitions](/docs/releases/feature-stages/#feature-phase-definitions) before use.
-In particular, there are known performance, stability, and security issues in the `alpha` release.
-There are also planned breaking changes, including some that will prevent upgrades.
-These are all limitations that will be addressed before graduation to `beta`.
-{{< /warning >}}
+{{< boilerplate ambient-alpha-warning >}}
 
 This guide lets you quickly evaluate Istio {{< gloss "ambient" >}}ambient service mesh{{< /gloss >}}. These steps require you to have
 a {{< gloss >}}cluster{{< /gloss >}} running a
@@ -21,6 +14,11 @@ a {{< gloss >}}cluster{{< /gloss >}} running a
 example [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) or
 others specified by the
 [platform-specific setup instructions](/docs/setup/platform-setup/).
+
+{{< warning >}}
+Note that Ambient currently requires the use of [istio-cni](/docs/setup/additional-setup/cni) to configure Kubernetes nodes.
+`istio-cni` ambient mode does **not** currently support types of cluster CNI (namely, CNI implementations that do not use `veth` devices, such as [Minikube's](https://kubernetes.io/docs/tasks/tools/install-minikube/) `bridge` mode)
+{{< /warning >}}
 
 Follow these steps to get started with ambient:
 
@@ -33,7 +31,7 @@ Follow these steps to get started with ambient:
 
 ## Download and install {#download}
 
-1.  Download the [latest version of Istio](https://github.com/istio/istio/releases/tag/1.18.0-alpha.0) with `alpha` support for ambient mesh.
+1.  Download the [latest version of Istio](/docs/setup/getting-started/#download) with `alpha` support for ambient mesh.
 
 1.  If you don’t have a Kubernetes cluster, you can deploy one locally using `kind` with the following command:
 
@@ -53,7 +51,7 @@ Follow these steps to get started with ambient:
 
     {{< text bash >}}
     $ kubectl get crd gateways.gateway.networking.k8s.io &> /dev/null || \
-      { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref=v0.6.1" | kubectl apply -f -; }
+      { kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref={{< k8s_gateway_api_version >}}" | kubectl apply -f -; }
     {{< /text >}}
 
     {{< tip >}}
@@ -65,12 +63,18 @@ Follow these steps to get started with ambient:
     Install Istio with the `ambient` profile on your Kubernetes cluster, using
     the `istioctl` command downloaded above:
 
+{{< tip >}}
+Note that if you are using [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/) (or any other platform using nodes configured with a nonstandard `netns` path for containers), you may need to append `--set values.cni.cniNetnsDir="/var/run/docker/netns"` to the `istioctl install` command so that the Istio CNI DaemonSet can correctly manage and capture pods on the node.
+
+Consult your platform documentation for details.
+{{< /tip >}}
+
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text bash >}}
-$ istioctl install --set profile=ambient --set components.ingressGateways[0].enabled=true --set components.ingressGateways[0].name=istio-ingressgateway --skip-confirmation
+$ istioctl install --set profile=ambient --set "components.ingressGateways[0].enabled=true" --set "components.ingressGateways[0].name=istio-ingressgateway" --skip-confirmation
 {{< /text >}}
 
 After running the above command, you’ll get the following output that indicates
@@ -112,7 +116,7 @@ four components (including {{< gloss "ztunnel" >}}Ztunnel{{< /gloss >}}) have be
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text bash >}}
 $ kubectl get pods -n istio-system
@@ -127,7 +131,7 @@ ztunnel-lr7lz                           1/1     Running   0          69s
 $ kubectl get daemonset -n istio-system
 NAME             DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
 istio-cni-node   1         1         1       1            1           kubernetes.io/os=linux   70s
-ztunnel          1         1         1       1            1           <none>                   82s
+ztunnel          1         1         1       1            1           kubernetes.io/os=linux   82s
 {{< /text >}}
 
 {{< /tab >}}
@@ -146,7 +150,7 @@ ztunnel-lr7lz                           1/1     Running   0          69s
 $ kubectl get daemonset -n istio-system
 NAME             DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
 istio-cni-node   1         1         1       1            1           kubernetes.io/os=linux   70s
-ztunnel          1         1         1       1            1           <none>                   82s
+ztunnel          1         1         1       1            1           kubernetes.io/os=linux   82s
 {{< /text >}}
 
 {{< /tab >}}
@@ -181,9 +185,13 @@ Make sure the default namespace does not include the label `istio-injection=enab
 
 1. Deploy an ingress gateway so you can access the bookinfo app from outside the cluster:
 
+    {{< tip >}}
+    To get IP address assignment for `Loadbalancer` service types in `kind`, you may need to install a tool like [MetalLB](https://metallb.universe.tf/). Please consult [this guide](https://kind.sigs.k8s.io/docs/user/loadbalancer/) for more information.
+    {{</ tip >}}
+
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Create an Istio [Gateway](/docs/reference/config/networking/gateway/) and
 [VirtualService](/docs/reference/config/networking/virtual-service/):
@@ -203,8 +211,8 @@ $ export GATEWAY_SERVICE_ACCOUNT=ns/istio-system/sa/istio-ingressgateway-service
 
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
-Create a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.Gateway)
-and [HTTPRoute](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1beta1.HTTPRoute):
+Create a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1.Gateway)
+and [HTTPRoute](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1.HTTPRoute):
 
 {{< text bash >}}
 $ sed -e 's/from: Same/from: All/'\
@@ -295,19 +303,19 @@ $ kubectl apply -f - <<EOF
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
- name: productpage-viewer
- namespace: default
+  name: productpage-viewer
+  namespace: default
 spec:
- selector:
-   matchLabels:
-     app: productpage
- action: ALLOW
- rules:
- - from:
-   - source:
-       principals:
-       - cluster.local/ns/default/sa/sleep
-       - cluster.local/$GATEWAY_SERVICE_ACCOUNT
+  selector:
+    matchLabels:
+      app: productpage
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/default/sa/sleep
+        - cluster.local/$GATEWAY_SERVICE_ACCOUNT
 EOF
 {{< /text >}}
 
@@ -338,7 +346,7 @@ Using the Kubernetes Gateway API, you can deploy a {{< gloss "waypoint" >}}waypo
 Deploy a waypoint proxy for the `productpage` service:
 
 {{< text bash >}}
-$ istioctl x waypoint apply --service-account bookinfo-productpage
+$ istioctl x waypoint apply --service-account bookinfo-productpage --wait
 waypoint default/bookinfo-productpage applied
 {{< /text >}}
 
@@ -365,22 +373,23 @@ $ kubectl apply -f - <<EOF
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
- name: productpage-viewer
- namespace: default
+  name: productpage-viewer
+  namespace: default
 spec:
- selector:
-   matchLabels:
-     istio.io/gateway-name: bookinfo-productpage
- action: ALLOW
- rules:
- - from:
-   - source:
-       principals:
-       - cluster.local/ns/default/sa/sleep
-       - cluster.local/$GATEWAY_SERVICE_ACCOUNT
-   to:
-   - operation:
-       methods: ["GET"]
+  targetRef:
+    kind: Gateway
+    group: gateway.networking.k8s.io
+    name: bookinfo-productpage
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/default/sa/sleep
+        - cluster.local/$GATEWAY_SERVICE_ACCOUNT
+    to:
+    - operation:
+        methods: ["GET"]
 EOF
 {{< /text >}}
 
@@ -407,7 +416,7 @@ $ kubectl exec deploy/sleep -- curl -s http://productpage:9080/ | grep -o "<titl
 Deploy a waypoint proxy for the review service, using the `bookinfo-review` service account, so that any traffic going to the review service will be mediated by the waypoint proxy.
 
 {{< text bash >}}
-$ istioctl x waypoint apply --service-account bookinfo-reviews
+$ istioctl x waypoint apply --service-account bookinfo-reviews --wait
 waypoint default/bookinfo-reviews applied
 {{< /text >}}
 
@@ -415,7 +424,7 @@ Configure traffic routing to send 90% of requests to `reviews` v1 and 10% to `re
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text bash >}}
 $ kubectl apply -f @samples/bookinfo/networking/virtual-service-reviews-90-10.yaml@
@@ -443,12 +452,10 @@ $ kubectl exec deploy/sleep -- sh -c "for i in \$(seq 1 100); do curl -s http://
 
 ## Uninstall {#uninstall}
 
-To remove the `productpage-viewer` authorization policy, waypoint proxies and uninstall Istio:
+To remove waypoint proxies, installed policies, and uninstall Istio:
 
 {{< text bash >}}
-$ kubectl delete authorizationpolicy productpage-viewer
-$ istioctl x waypoint delete --service-account bookinfo-reviews
-$ istioctl x waypoint delete --service-account bookinfo-productpage
+$ istioctl x waypoint delete --all
 $ istioctl uninstall -y --purge
 $ kubectl delete namespace istio-system
 {{< /text >}}
@@ -471,5 +478,5 @@ $ kubectl delete -f @samples/sleep/notsleep.yaml@
 If you installed the Gateway API CRDs, remove them:
 
 {{< text bash >}}
-$ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref=v0.6.1" | kubectl delete -f -
+$ kubectl kustomize "github.com/kubernetes-sigs/gateway-api/config/crd/experimental?ref={{< k8s_gateway_api_version >}}" | kubectl delete -f -
 {{< /text >}}

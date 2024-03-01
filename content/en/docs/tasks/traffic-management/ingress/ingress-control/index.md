@@ -56,7 +56,7 @@ Let's see how you can configure a `Gateway` on port 80 for HTTP traffic.
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Create an [Istio Gateway](/docs/reference/config/networking/gateway/):
 
@@ -130,7 +130,7 @@ for more details.
 
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
-Create a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.Gateway):
+Create a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1.Gateway):
 
 {{< text bash >}}
 $ kubectl apply -f - <<EOF
@@ -192,7 +192,7 @@ spec:
 EOF
 {{< /text >}}
 
-You have now created an [HTTP Route](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.HTTPRoute)
+You have now created an [HTTP Route](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1.HTTPRoute)
 configuration for the `httpbin` service containing two route rules that allow traffic for paths `/status` and
 `/delay`.
 
@@ -222,7 +222,7 @@ Set the `INGRESS_HOST` and `INGRESS_PORT` environment variables according to the
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Set the following environment variables to the name and namespace where the Istio ingress gateway is located in your cluster:
 
@@ -335,7 +335,7 @@ You can work around this problem for simple tests and demos as follows:
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Use a wildcard `*` value for the host in the `Gateway`
 and `VirtualService` configurations. For example, change your ingress configuration to the following:
@@ -519,7 +519,7 @@ they have valid values, according to the output of the following commands:
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Delete the `Gateway` and `VirtualService` configuration, and shutdown the [httpbin]({{< github_tree >}}/samples/httpbin) service:
 

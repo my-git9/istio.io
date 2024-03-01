@@ -120,7 +120,7 @@ to understand how `X-Forwarded-For` headers and trusted client addresses are det
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text syntax=bash snip_id=deploy_httpbin_gateway >}}
 $ kubectl apply -n httpbin -f @samples/httpbin/httpbin-gateway.yaml@
@@ -143,7 +143,7 @@ $ kubectl wait --for=condition=programmed gtw -n httpbin httpbin-gateway
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text syntax=bash snip_id=export_gateway_url >}}
 $ export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -246,59 +246,26 @@ PROXY protocol is only supported for TCP traffic forwarding by Envoy. See the [E
 PROXY protocol should not be used for L7 traffic, or for Istio gateways behind L7 load balancers.
 {{< /warning >}}
 
-If your external TCP load balancer is configured to forward TCP traffic and use the PROXY protocol, the Istio Gateway TCP listener must also be configured to accept the PROXY protocol. Enabling this requires adding the [Envoy Proxy Protocol filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/listeners/listener_filters/proxy_protocol) using an `EnvoyFilter` applied on the gateway workload. For example:
-
-{{< tabset category-name="config-api" >}}
-
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+If your external TCP load balancer is configured to forward TCP traffic and use the PROXY protocol, the Istio Gateway TCP listener must also be configured to accept the PROXY protocol.
+To enable PROXY protocol on all TCP listeners on the gateways, set `proxyProtocol` in your `IstioOperator`. For example:
 
 {{< text syntax=yaml snip_id=none >}}
-apiVersion: networking.istio.io/v1alpha3
-kind: EnvoyFilter
-metadata:
-  name: proxy-protocol
-  namespace: istio-system
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
 spec:
-  configPatches:
-  - applyTo: LISTENER_FILTER
-    patch:
-      operation: INSERT_FIRST
-      value:
-        name: proxy_protocol
-        typed_config:
-          "@type": "type.googleapis.com/envoy.extensions.filters.listener.proxy_protocol.v3.ProxyProtocol"
-  workloadSelector:
-    labels:
-      istio: ingressgateway
+  meshConfig:
+    defaultConfig:
+      gatewayTopology:
+        proxyProtocol: {}
 {{< /text >}}
 
-{{< /tab >}}
+Alternatively, deploy a gateway with the following pod annotation:
 
-{{< tab name="Gateway API" category-value="gateway-api" >}}
-
-{{< text syntax=yaml snip_id=none >}}
-apiVersion: networking.istio.io/v1alpha3
-kind: EnvoyFilter
+{{< text yaml >}}
 metadata:
-  name: proxy-protocol
-  namespace: istio-system
-spec:
-  configPatches:
-  - applyTo: LISTENER_FILTER
-    patch:
-      operation: INSERT_FIRST
-      value:
-        name: proxy_protocol
-        typed_config:
-          "@type": "type.googleapis.com/envoy.extensions.filters.listener.proxy_protocol.v3.ProxyProtocol"
-  workloadSelector:
-    labels:
-      istio.io/gateway-name: <GATEWAY_NAME>
+  annotations:
+    "proxy.istio.io/config": '{"gatewayTopology" : { "proxyProtocol": {} }}'
 {{< /text >}}
-
-{{< /tab >}}
-
-{{< /tabset >}}
 
 The client IP is retrieved from the PROXY protocol by the gateway and set (or appended) in the `X-Forwarded-For` and `X-Envoy-External-Address` header. Note that the PROXY protocol is mutually exclusive with L7 headers like `X-Forwarded-For` and `X-Envoy-External-Address`. When PROXY protocol is used in conjunction with the `gatewayTopology` configuration, the `numTrustedProxies` and the received `X-Forwarded-For` header takes precedence in determining the trusted client addresses, and PROXY protocol client information will be ignored.
 

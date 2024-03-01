@@ -58,6 +58,10 @@ kubectl apply --context="${CTX_CLUSTER1}" -n istio-system -f \
     samples/multicluster/expose-istiod.yaml
 }
 
+snip_expose_the_control_plane_in_cluster1_2() {
+sed 's/{{.Revision}}/rev/g' samples/multicluster/expose-istiod-rev.yaml.tmpl | kubectl apply --context="${CTX_CLUSTER1}" -n istio-system -f -
+}
+
 snip_set_the_control_plane_cluster_for_cluster2_1() {
 kubectl --context="${CTX_CLUSTER2}" create namespace istio-system
 kubectl --context="${CTX_CLUSTER2}" annotate namespace istio-system topology.istio.io/controlPlaneClusters=cluster1
@@ -89,7 +93,7 @@ istioctl install --set values.pilot.env.PILOT_ENABLE_CONFIG_DISTRIBUTION_TRACKIN
 }
 
 snip_attach_cluster2_as_a_remote_cluster_of_cluster1_1() {
-istioctl x create-remote-secret \
+istioctl create-remote-secret \
     --context="${CTX_CLUSTER2}" \
     --name=cluster2 | \
     kubectl apply -f - --context="${CTX_CLUSTER1}"

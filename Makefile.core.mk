@@ -27,7 +27,7 @@ export IN_BUILD_CONTAINER := $(IN_BUILD_CONTAINER)
 
 # ISTIO_IMAGE_VERSION stores the prefix used by default for the Docker images for Istio.
 # For example, a value of 1.6-alpha will assume a default TAG value of 1.6-dev.<SHA>
-ISTIO_IMAGE_VERSION ?= 1.19-alpha
+ISTIO_IMAGE_VERSION ?= 1.21-alpha
 export ISTIO_IMAGE_VERSION
 
 # Determine the SHA for the Istio dependency by parsing the go.mod file.
@@ -77,7 +77,7 @@ baseurl := "$(URL)"
 endif
 
 # Which branch of the Istio source code do we fetch stuff from
-export SOURCE_BRANCH_NAME ?= master
+export SOURCE_BRANCH_NAME ?= release-1.21
 
 site:
 	@scripts/gen_site.sh
@@ -85,7 +85,14 @@ site:
 snips:
 	@scripts/gen_snips.sh
 
-gen: tidy-go format-go snips
+# Force locale, since macOS and Linux use different locales. Otherwise updates from macOS users will
+# fail make gen-check with an incorrect (for the pipeline) .spelling.
+format-spelling:
+	@echo "Sorting the .spelling file..."
+	@LC_ALL=C sort .spelling --ignore-case -o .spelling
+	@echo ".spelling file sorted."
+
+gen: tidy-go format-go update-gateway-version snips format-spelling
 
 gen-check: gen check-clean-repo check-localization
 
@@ -122,7 +129,7 @@ lint-md: clean_public build_nominify
 	@SKIP_LINK_CHECK=true scripts/lint_site.sh en
 
 serve: site
-	@hugo serve --baseURL "http://${ISTIO_SERVE_DOMAIN}:1313/latest/" --bind 0.0.0.0 --disableFastRender
+	@hugo serve --baseURL "http://${ISTIO_SERVE_DOMAIN}:1313/latest/" --bind 0.0.0.0 --watch --disableFastRender
 
 archive-version:
 	@scripts/archive_version.sh
@@ -131,17 +138,17 @@ archive-version:
 # to what is included in the tools repo in docker/build-tools/Dockerfile.
 netlify_install:
 	@npm init -y
-	@npm install --production --global \
-	    sass@v1.23.7 \
-	    typescript@v3.7.2 \
-	    svgstore-cli@v1.3.1 \
-		@babel/core@v7.7.4 \
-		@babel/cli@v7.7.4 \
-		@babel/preset-env@v7.7.4
-	@npm install --production --save-dev \
-		babel-preset-minify@v0.5.1
-	@npm install --save-dev \
-		@babel/polyfill@v7.7.0
+	@npm install --omit=dev --global \
+	    sass@v1.52.1 \
+	    typescript@v4.7.2 \
+	    svgstore-cli@v1.3.2 \
+		@babel/core@v7.18.2 \
+		@babel/cli@v7.17.10 \
+		@babel/preset-env@v7.18.2
+	@npm install --omit=dev --save-dev \
+		babel-preset-minify@v0.5.2
+	@npm install --save \
+		core-js@3.31.1
 
 netlify: netlify_install
 	@scripts/gen_site.sh
@@ -230,10 +237,9 @@ test_status:
 	@scripts/test_status.sh
 
 update-gateway-version: tidy-go
-	@$(eval GATEWAY_VERSION := ${shell grep gateway-api go.mod | awk '{ print $$2 }'})
+	$(eval GATEWAY_VERSION := ${shell scripts/get_gateway_api_version.sh})
 	@${shell sed -Ei 's|k8s_gateway_api_version: ".*"|k8s_gateway_api_version: "${GATEWAY_VERSION}"|' 'data/args.yml'}
-
 
 include common/Makefile.common.mk
 
-.PHONY: site gen build build_nominify opt clean_public clean lint serve netlify_install netlify netlify_archive archive update_ref_docs update_operator_yamls update_all update_gateway_version
+.PHONY: site gen build build_nominify opt clean_public clean lint serve netlify_install netlify netlify_archive archive update_ref_docs update_operator_yamls update_all update-gateway-version

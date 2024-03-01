@@ -46,12 +46,12 @@ You can display the default values of configuration parameters using the `helm s
 1. Install the Istio base chart which contains cluster-wide Custom Resource Definitions (CRDs) which must be installed prior to the deployment of the Istio control plane:
 
     {{< warning >}}
-    When performing a revisioned installation, the base chart requires the `--defaultRevision` value to be set for resource
-    validation to function. More information on the `--defaultRevision` option can be found in the Helm upgrade documentation.
+    When performing a revisioned installation, the base chart requires the `--set defaultRevision=<revision>` value to be set for resource
+    validation to function. Below we install the `default` revision, so `--set defaultRevision=default` is configured.
     {{< /warning >}}
 
     {{< text syntax=bash snip_id=install_base >}}
-    $ helm install istio-base istio/base -n istio-system
+    $ helm install istio-base istio/base -n istio-system --set defaultRevision=default
     {{< /text >}}
 
 1. Validate the CRD installation with the `helm ls` command:
@@ -63,6 +63,8 @@ You can display the default values of configuration parameters using the `helm s
     {{< /text >}}
 
     In the output locate the entry for `istio-base` and make sure the status is set to `deployed`.
+
+1. If you intend to use Istio CNI chart you must do so now. See [Install Istio with the CNI plugin](/docs/setup/additional-setup/cni/#installing-with-helm) for more info.
 
 1. Install the Istio discovery chart which deploys the `istiod` service:
 
@@ -214,15 +216,15 @@ installed above.
 If you decide to continue using the old control plane, instead of completing the update,
 you can uninstall the newer revision and its tag by first issuing
 `helm template istiod istio/istiod -s templates/revision-tags.yaml --set revisionTags={prod-canary} --set revision=canary -n istio-system | kubectl delete -f -`.
-You must them uninstall the revision of Istio that it pointed to by following the uninstall procedure above.
+You must then uninstall the revision of Istio that it pointed to by following the uninstall procedure above.
 
-If you installed the gateway(s) for this revision using in-place upgrades, you must also reinstall the gateway(s) for the previous revision manually,
-Removing the previous revision and its tags will not automatically revert the previously in-place upgraded gateway(s).
+If you installed the gateway(s) for this revision using in-place upgrades, you must also reinstall the gateway(s) for the previous revision manually.
+Removing the previous revision and its tags will not automatically revert the previously upgraded gateway(s).
 
 ### (Optional) Deleting CRDs installed by Istio
 
-Deleting CRDs permanently removes any Istio resources you have created in your
-cluster. To permanently delete Istio CRDs installed in your cluster:
+Deleting CRDs permanently removes any Istio resources you have created in your cluster.
+To delete Istio CRDs installed in your cluster:
 
 {{< text syntax=bash snip_id=delete_crds >}}
 $ kubectl get crd -oname | grep --color=never 'istio.io' | xargs kubectl delete

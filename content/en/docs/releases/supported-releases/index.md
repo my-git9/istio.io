@@ -70,10 +70,9 @@ Please keep up-to-date and use a supported version.
 
 | Minor Releases   | Patched versions with no known CVEs                  |
 | ---------------- | ---------------------------------------------------- |
-| 1.18.x           | 1.18.0                                               |
-| 1.17.x           | 1.17.2+                                              |
-| 1.16.x           | 1.16.4+                                              |
-| 1.15.x           | 1.15.7 - End of life. A new CVE will NOT be patched  |
+| 1.21.x           | 1.21.0                                              |
+| 1.20.x           | 1.20.3+                                              |
+| 1.19.x           | 1.19.7+                                              |
 
 ## Supported Envoy Versions
 
@@ -81,10 +80,10 @@ Istio's data plane is based on [Envoy](https://github.com/envoyproxy/envoy).
 
 The relationship between the two project's versions:
 
-| Istio version | Envoy version |
-| ------------- | ------------- |
-| 1.18.x        | 1.26.x        |
-| 1.17.x        | 1.25.x        |
-| 1.16.x        | 1.24.x        |
+| Istio version | Envoy release branch |
+| ------------- | -------------------- |
+| 1.21.x        | release/v1.29        |
+| 1.20.x        | release/v1.28        |
+| 1.19.x        | release/v1.27        |
 
-In general, Istio releases tend to map one to one with Envoy releases. You can find the precise Envoy commit used by Istio in [`istio/proxy`](https://github.com/istio/proxy/blob/master/WORKSPACE#L38).
+You can find the precise Envoy commit used by Istio in [`istio/proxy`](https://github.com/istio/proxy/blob/master/WORKSPACE#L38).

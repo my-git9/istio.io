@@ -60,6 +60,10 @@ See [compatibility with other CNI plugins](#compatibility-with-other-cni-plugins
 
 In most environments, a basic Istio cluster with CNI enabled can be installed using the following commands:
 
+{{< tabset category-name="gateway-install-type" >}}
+
+{{< tab name="IstioOperator" category-value="iop" >}}
+
 {{< text bash >}}
 $ cat <<EOF > istio-cni.yaml
 apiVersion: install.istio.io/v1alpha1
@@ -71,6 +75,18 @@ spec:
 EOF
 $ istioctl install -f istio-cni.yaml -y
 {{< /text >}}
+
+{{< /tab >}}
+
+{{< tab name="Helm" category-value="helm" >}}
+
+{{< text bash >}}
+$ helm install istio-cni istio/cni -n kube-system --wait
+{{< /text >}}
+
+{{< /tab >}}
+
+{{< /tabset >}}
 
 This will deploy an `istio-cni-node` DaemonSet into the cluster, which installs the Istio CNI plugin binary to each node and sets up the necessary configuration for the plugin.
 The CNI DaemonSet runs with [`system-node-critical`](https://kubernetes.io/docs/tasks/administer-cluster/guaranteed-scheduling-critical-addon-pods/) `PriorityClass`.
@@ -91,47 +107,52 @@ This race condition is mitigated by a "detect and repair" method.
 Please take a look at [race condition & mitigation](#race-condition--mitigation) section to understand the implication of this mitigation.
 {{< /tip >}}
 
+### Installing with Helm
+
+The Istio CNI and Istio discovery chart use different values that require you set the following, either in an overrides values file or at your command prompt when installing the `istiod` chart, to manage network annotations when chaining CNI plugins:
+
+* `values.istio_cni.enabled` should be set to the same value as `values.cni.enabled`.
+
+* `values.istio_cni.chained` should be set to the same value as `values.cni.chained`.
+
+{{< text bash >}}
+$  helm install istiod istio/istiod -n istio-system --set values.istio_cni.enabled=true --wait
+{{< /text >}}
+
 ### Hosted Kubernetes settings
 
 The `istio-cni` plugin is expected to work with any hosted Kubernetes version using CNI plugins.
 The default installation configuration works with most platforms.
 Some platforms required special installation settings.
 
-* Google Kubernetes Engine
+{{< tabset category-name="cni-platform" >}}
 
-    {{< text yaml >}}
-    apiVersion: install.istio.io/v1alpha1
-    kind: IstioOperator
-    spec:
-      components:
-        cni:
-          enabled: true
-          namespace: kube-system
-      values:
-        cni:
-          cniBinDir: /home/kubernetes/bin
-    {{< /text >}}
+{{< tab name="Google Kubernetes Engine" category-value="gke" >}}
 
-* Red Hat OpenShift 4.2+
+{{< text yaml >}}
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    cni:
+      enabled: true
+      namespace: kube-system
+  values:
+    cni:
+      cniBinDir: /home/kubernetes/bin
+{{< /text >}}
 
-    {{< text yaml >}}
-    apiVersion: install.istio.io/v1alpha1
-    kind: IstioOperator
-    spec:
-      components:
-        cni:
-          enabled: true
-          namespace: kube-system
-      values:
-        sidecarInjectorWebhook:
-          injectedAnnotations:
-            k8s.v1.cni.cncf.io/networks: istio-cni
-        cni:
-          cniBinDir: /var/lib/cni/bin
-          cniConfDir: /etc/cni/multus/net.d
-          cniConfFileName: istio-cni.conf
-          chained: false
-    {{< /text >}}
+{{< /tab >}}
+
+{{< tab name="Red Hat OpenShift 4.2+" category-value="ocp" >}}
+
+{{< text bash >}}
+$ istioctl install --set profile=openshift
+{{< /text >}}
+
+{{< /tab >}}
+
+{{< /tabset >}}
 
 ## Operation details
 
@@ -143,6 +164,8 @@ CNI component can be upgraded together with the control plane using one `IstioOp
 When upgrading Istio with [canary upgrade](/docs/setup/upgrade/canary/), because the CNI component runs as a cluster singleton,
 it is recommended to operate and upgrade the CNI component separately from the revisioned control plane.
 The following `IstioOperator` can be used to operate the CNI component independently.
+
+This is not a problem for Helm as the istio-cni is installed separately.
 
 {{< text yaml >}}
 apiVersion: install.istio.io/v1alpha1
@@ -187,8 +210,16 @@ The result is that the application pod comes up without Istio traffic redirectio
 To mitigate the race between an application pod and the Istio CNI DaemonSet,
 an `istio-validation` init container is added as part of the sidecar injection,
 which detects if traffic redirection is set up correctly, and blocks the pod starting up if not.
-The CNI DaemonSet will detect and evict any pod stuck in such state. When the new pod starts up, it should have traffic redirection set up properly.
+The CNI DaemonSet will detect and handle any pod stuck in such state; how the pod is handled is dependent on configuration described below.
 This mitigation is enabled by default and can be turned off by setting `values.cni.repair.enabled` to false.
+
+This repair capability can be further configured with different RBAC permissions to help mitigate the theoretical attack vector detailed in [`ISTIO-SECURITY-2023-005`](/news/security/istio-security-2023-005/).  By setting the below fields to true/false as required, you can select the Kubernetes RBAC permissions granted to the Istio CNI.
+
+|Configuration                    | Roles       | Behavior on Error                                                                                                                           | Notes
+|---------------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------
+|`values.cni.repair.deletePods`   | DELETE pods | Pods are deleted, when rescheduled they will have the correct configuration.                                                                  | Default in 1.20 and older
+|`values.cni.repair.labelPods`    | UPDATE pods | Pods are only labeled.  User will need to take manual action to resolve.                                                                      |
+|`values.cni.repair.repairPods`   | None        | Pods are dynamically reconfigured to have appropriate configuration. When the container restarts, the pod will continue normal execution.     | Default in 1.21 and newer
 
 ### Traffic redirection parameters
 

@@ -61,7 +61,7 @@ Bookinfo 应用中的几个微服务是由不同的语言编写的。
 ### 启动应用服务{#start-the-application-services}
 
 {{< tip >}}
-如果运行的是 GKE，请确您的集群具有至少四个标准 GKE 节点。如果使用的是 Minikube，应该有 4G 以上的内存。
+如果运行的是 GKE，请确保您的集群至少具有四个标准 GKE 节点。如果使用的是 Minikube，应该有 4G 以上的内存。
 {{< /tip >}}
 
 1. 进入 Istio 安装目录。
@@ -144,7 +144,7 @@ Bookinfo 应用中的几个微服务是由不同的语言编写的。
 
     {{< tabset category-name="config-api" >}}
 
-    {{< tab name="Istio classic" category-value="istio-classic" >}}
+    {{< tab name="Istio APIs" category-value="istio-apis" >}}
 
     使用以下命令创建 [Istio Gateway](/zh/docs/concepts/traffic-management/#gateways)：
 
@@ -223,7 +223,7 @@ $ curl -s "http://${GATEWAY_URL}/productpage" | grep -o "<title>.*</title>"
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Istio 在[目标规则](/zh/docs/concepts/traffic-management/#destination-rules)中使用
 **subsets** 定义服务的版本。运行以下命令为 Bookinfo 服务创建默认的目标规则：

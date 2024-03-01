@@ -112,7 +112,7 @@ example.com.key         httpbin.example.com.csr
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 First, define a gateway with a `servers:` section for port 443, and specify values for
 `credentialName` to be `httpbin-credential`. The values are the same as the
@@ -175,7 +175,7 @@ to set the `INGRESS_HOST` and `SECURE_INGRESS_PORT` variables for accessing the 
 
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
-First, create a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.Gateway):
+First, create a [Kubernetes Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1.Gateway):
 
 {{< text bash >}}
 $ cat <<EOF | kubectl apply -f -
@@ -341,7 +341,7 @@ is configured with unique credentials corresponding to each host.
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Define a gateway with two server sections for port 443. Set the value of
 `credentialName` on each port to `httpbin-credential` and `helloworld-credential`
@@ -532,7 +532,7 @@ You can extend your gateway's definition to support [mutual TLS](https://en.wiki
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 Change the gateway's definition to set the TLS mode to `MUTUAL`.
 
@@ -563,7 +563,7 @@ EOF
 {{< tab name="Gateway API" category-value="gateway-api" >}}
 
 Because the Kubernetes Gateway API does not currently support mutual TLS termination in a
-[Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.Gateway),
+[Gateway](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1.Gateway),
 we use an Istio-specific option, `gateway.istio.io/tls-terminate-mode: MUTUAL`,
 to configure it:
 
@@ -717,7 +717,7 @@ See [configuring SNI routing](/docs/ops/common-problems/network-issues/#configur
 
 {{< tabset category-name="config-api" >}}
 
-{{< tab name="Istio classic" category-value="istio-classic" >}}
+{{< tab name="Istio APIs" category-value="istio-apis" >}}
 
 {{< text bash >}}
 $ kubectl delete gateway mygateway
